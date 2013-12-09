@@ -1,9 +1,10 @@
 import sys
 import os, os.path
-import cmd
+import cmd, readline
 import argparse
 import tempfile
 import shlex
+import subprocess
 
 def wintitle(name):
     print "\033]0;%s\007\r" % name,
@@ -20,7 +21,7 @@ def mkdo(cbk):
     return do
 
 class Cmdline(cmd.Cmd):
-    def __init__(self):
+    def __init__(self, history=False):
         cmd.Cmd.__init__(self)
 
         # Create argument parsers and callbacks
@@ -35,35 +36,72 @@ class Cmdline(cmd.Cmd):
             setattr(Cmdline, 'do_' + cbk, mkdo(cbk))
 
         # Set prompt and title
-        name = self.__class__.__name__.lower()
-        self.prompt = name + '% '
-        wintitle(name)
+        self.name = self.__class__.__name__.lower()
+        self.prompt = self.name + '% '
+        wintitle(self.name)
 
         # Create directory
-        directory = os.path.expanduser('~/.%s' % name)
-        if not os.path.lexists(directory):
-            os.mkdir(directory)
+        self.directory = os.path.expanduser('~/.%s' % self.name)
+        if not os.path.lexists(self.directory):
+            os.mkdir(self.directory)
 
-        # Write help for base callbacks
+        # Set up base argument parsers
+        self.editparser.description = "Edit command line."
+        self.editparser.add_argument('command', help="command")
+        self.editparser.add_argument('argument', help="arguments", nargs='*')
+
         self.EOFparser.description = "Exit. You could also use Ctrl-D."
+
+        # History
+        self.history = history
+        histfile = self.directory + '/histfile'
+        if self.history and os.path.exists(histfile):
+            readline.read_history_file(histfile)
 
     def emptyline(self):
         pass
+
+    def precmd(self, line):
+        readline.set_pre_input_hook()
+        if self.history:
+            readline.write_history_file(self.directory + '/histfile')
+        return line
 
     def loop(self):
         while True:
             try:
                 self.cmdloop()
             except KeyboardInterrupt:
+                readline.set_pre_input_hook()
                 print
 
     def run_EOF(self, _):
         print
         sys.exit(0)
 
-    def run_edit(self, line):
+    def run_edit(self, args):
         '''
         Edit command line
         '''
 
-        print "Will do some editing"
+        # Open command line in editor
+        tmpw = tempfile.NamedTemporaryFile(prefix='edit-', dir=self.directory)
+        print >> tmpw, ' '.join([args.command] + args.argument)
+        tmpw.flush()
+        subprocess.call(['vim', '-n', '+set titlestring=' + self.name,
+                         tmpw.name])
+        wintitle(self.name)
+
+        # Read edited command line
+        tmpr = open(tmpw.name)
+        line = tmpr.read().strip() # Can't cope with any trailing newline
+
+        def hook():
+            '''
+            Insert text in command line
+            '''
+
+            readline.insert_text(line)
+            readline.redisplay()
+
+        readline.set_pre_input_hook(hook)
