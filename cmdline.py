@@ -12,7 +12,7 @@ COMMANDKWARGS = {'help': 'command'}
 ARGUMENTARGS = 'argument',
 ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
 
-def mkdo(cbk):
+def _mkdo(cbk):
     def do(self, line):
         try:
             split = shlex.split(line)
@@ -22,6 +22,26 @@ def mkdo(cbk):
         getattr(self, 'run_' + cbk)(args)
 
     return do
+
+def _mkcomplete():
+    def complete(self, text, line, begidx, endidx):
+        return _filecomp(text, line, begidx)
+
+    return complete
+
+def _filecomp(text, line, begidx):
+    def _filetype(direc, e):
+        if direc and direc != '/':
+            direc = '%s/' % direc
+        path = '%s%s' % (direc, e)
+
+        return '%s/' % path if os.path.isdir(os.path.expanduser(path)) else path
+
+    direc = os.path.dirname(text)
+
+    return [_filetype(direc, e)
+            for e in os.listdir(os.path.expanduser(direc if direc else '.'))
+            if e.startswith(os.path.basename(text))]
 
 class Cmdline(cmd.Cmd):
     def __init__(self, history=False):
@@ -36,7 +56,10 @@ class Cmdline(cmd.Cmd):
             setattr(Cmdline, 'help_' + cbk, getattr(Cmdline, cbk + 'parser').print_help)
 
             # Create do function
-            setattr(Cmdline, 'do_' + cbk, mkdo(cbk))
+            setattr(Cmdline, 'do_' + cbk, _mkdo(cbk))
+
+            # Create complete function
+            setattr(Cmdline, 'complete_' + cbk, _mkcomplete())
 
         # Set prompt and title
         self.name = self.__class__.__name__.lower()
@@ -66,6 +89,9 @@ class Cmdline(cmd.Cmd):
         histfile = self.directory + '/histfile'
         if self.history and os.path.exists(histfile):
             readline.read_history_file(histfile)
+
+        # Setup completion
+        readline.set_completer_delims(' \t\n')
 
     def wintitle(self):
         print "\033]0;%s\007\r" % self.name,
