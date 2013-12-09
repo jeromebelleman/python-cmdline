@@ -6,8 +6,11 @@ import tempfile
 import shlex
 import subprocess
 
-def wintitle(name):
-    print "\033]0;%s\007\r" % name,
+COMMANDARGS = 'command',
+COMMANDKWARGS = {'help': 'command'}
+
+ARGUMENTARGS = 'argument',
+ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
 
 def mkdo(cbk):
     def do(self, line):
@@ -16,7 +19,7 @@ def mkdo(cbk):
             args = getattr(Cmdline, cbk + 'parser').parse_args(split)
         except SystemExit:
             return
-        getattr(Cmdline, 'run_' + cbk)(self, args)
+        getattr(self, 'run_' + cbk)(args)
 
     return do
 
@@ -38,7 +41,7 @@ class Cmdline(cmd.Cmd):
         # Set prompt and title
         self.name = self.__class__.__name__.lower()
         self.prompt = self.name + '% '
-        wintitle(self.name)
+        self.wintitle()
 
         # Create directory
         self.directory = os.path.expanduser('~/.%s' % self.name)
@@ -47,10 +50,16 @@ class Cmdline(cmd.Cmd):
 
         # Set up base argument parsers
         self.editparser.description = "Edit command line."
-        self.editparser.add_argument('command', help="command")
-        self.editparser.add_argument('argument', help="arguments", nargs='*')
+        self.editparser.add_argument(*COMMANDARGS, **COMMANDKWARGS)
+        self.editparser.add_argument(*ARGUMENTARGS, **ARGUMENTKWARGS)
+
+        self.pageparser.description = "Page output."
 
         self.EOFparser.description = "Exit. You could also use Ctrl-D."
+
+        # Set page file name
+        self.temp = tempfile.NamedTemporaryFile(prefix='page-',
+                                                dir=self.directory)
 
         # History
         self.history = history
@@ -58,14 +67,31 @@ class Cmdline(cmd.Cmd):
         if self.history and os.path.exists(histfile):
             readline.read_history_file(histfile)
 
+    def wintitle(self):
+        print "\033]0;%s\007\r" % self.name,
+
     def emptyline(self):
         pass
 
+    def tempreset(self):
+        '''
+        Reset page temporary file
+        '''
+
+        self.temp.seek(0)
+        self.temp.truncate()
+
     def precmd(self, line):
+
         readline.set_pre_input_hook()
+
         if self.history:
             readline.write_history_file(self.directory + '/histfile')
+
         return line
+
+    def postcmd(self, stop, line):
+        self.temp.flush()
 
     def loop(self):
         while True:
@@ -90,7 +116,7 @@ class Cmdline(cmd.Cmd):
         tmpw.flush()
         subprocess.call(['vim', '-n', '+set titlestring=' + self.name,
                          tmpw.name])
-        wintitle(self.name)
+        self.wintitle()
 
         # Read edited command line
         tmpr = open(tmpw.name)
@@ -105,3 +131,12 @@ class Cmdline(cmd.Cmd):
             readline.redisplay()
 
         readline.set_pre_input_hook(hook)
+
+    def run_page(self, args):
+        '''
+        Page output
+        '''
+
+        subprocess.call(['vim', '-n', '+set nowrap',
+                         self.temp.name])
+        self.wintitle()
