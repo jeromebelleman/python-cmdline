@@ -12,6 +12,10 @@ COMMANDKWARGS = {'help': 'command'}
 ARGUMENTARGS = 'argument',
 ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
 
+# TODO Timing
+# TODO Ring bell when done
+# TODO Complete edit
+
 def _mkdo(cbk):
     def do(self, line):
         try:
@@ -25,6 +29,7 @@ def _mkdo(cbk):
 
 def _mkcomplete():
     def complete(self, text, line, begidx, endidx):
+        # TODO Option for directories?
         return _filecomp(text, line, begidx)
 
     return complete
@@ -128,6 +133,9 @@ class Cmdline(cmd.Cmd):
                 print
 
     def run_EOF(self, _):
+        # For some reason the tempfile isn't closed with the object is detroyed
+        self.temp.close()
+
         print
         sys.exit(0)
 
@@ -163,6 +171,6 @@ class Cmdline(cmd.Cmd):
         Page output
         '''
 
-        subprocess.call(['vim', '-n', '+set nowrap',
+        subprocess.call(['vim', '-n', '+set nowrap titlestring=' + self.name,
                          self.temp.name])
         self.wintitle()
