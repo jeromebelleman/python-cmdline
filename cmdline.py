@@ -13,7 +13,6 @@ ARGUMENTARGS = 'argument',
 ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
 
 # TODO Timing
-# TODO Ring bell when done
 # TODO Complete edit
 
 def _mkdo(cbk):
@@ -49,8 +48,10 @@ def _filecomp(text, line, begidx):
             if e.startswith(os.path.basename(text))]
 
 class Cmdline(cmd.Cmd):
-    def __init__(self, history=False):
+    def __init__(self, history=False, bell=False):
         cmd.Cmd.__init__(self)
+
+        self.bell = bell
 
         # Create argument parsers and callbacks
         for cbk in [cbk[4:] for cbk in dir(self) if cbk.startswith('run_')]:
@@ -122,6 +123,9 @@ class Cmdline(cmd.Cmd):
         return line
 
     def postcmd(self, stop, line):
+        if self.bell:
+            print '\a\r',
+
         self.temp.flush()
 
     def loop(self):
