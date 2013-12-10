@@ -13,7 +13,6 @@ ARGUMENTARGS = 'argument',
 ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
 
 # TODO Timing
-# TODO Complete edit
 
 def _mkdo(cbk):
     def do(self, line):
@@ -59,13 +58,16 @@ class Cmdline(cmd.Cmd):
             setattr(Cmdline, cbk + 'parser', argparse.ArgumentParser(prog=cbk))
 
             # Create help function
-            setattr(Cmdline, 'help_' + cbk, getattr(Cmdline, cbk + 'parser').print_help)
+            if 'help_' + cbk not in dir(self):
+                setattr(Cmdline, 'help_' + cbk,
+                        getattr(Cmdline, cbk + 'parser').print_help)
 
             # Create do function
             setattr(Cmdline, 'do_' + cbk, _mkdo(cbk))
 
             # Create complete function
-            setattr(Cmdline, 'complete_' + cbk, _mkcomplete())
+            if 'complete_' + cbk not in dir(self):
+                setattr(Cmdline, 'complete_' + cbk, _mkcomplete())
 
         # Set prompt and title
         self.name = self.__class__.__name__.lower()
@@ -169,6 +171,14 @@ class Cmdline(cmd.Cmd):
             readline.redisplay()
 
         readline.set_pre_input_hook(hook)
+
+    def complete_edit(self, text, line, begidx, endidx):
+        '''
+        Complete command for Vim editing
+        '''
+
+        return [cmd[3:] for cmd in dir(self)
+                if cmd.startswith('do_') and cmd[3:].startswith(text)]
 
     def run_page(self, args):
         '''
