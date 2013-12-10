@@ -18,7 +18,7 @@ def _mkdo(cbk):
         # Run command
         self.t0 = time.time()
         getattr(self, 'run_' + cbk)(args)
-        if args.time:
+        if self.time and args.time:
             print "%.1f seconds" % (time.time() - self.t0)
 
         # Flush data to paging temporary file
@@ -52,18 +52,18 @@ def _filecomp(text, line, begidx):
             if e.startswith(os.path.basename(text))]
 
 class Cmdline(cmd.Cmd):
-    def __init__(self, history=False, bell=False, timing=False):
+    def __init__(self, history=False, bell=False, time=False):
         cmd.Cmd.__init__(self)
 
         self.bell = bell
-        self.timing = timing
+        self.time = time
 
         # Create argument parsers and callbacks
         for cbk in [cbk[4:] for cbk in dir(self) if cbk.startswith('run_')]:
             # Create argument parser
             setattr(Cmdline, cbk + 'parser', argparse.ArgumentParser(prog=cbk))
             parser = getattr(Cmdline, cbk + 'parser')
-            if self.timing:
+            if self.time:
                 parser.add_argument('-t', '--time', action='store_true',
                                     help="measure time spent in operations")
 
