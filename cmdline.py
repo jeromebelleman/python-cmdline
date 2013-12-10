@@ -7,12 +7,6 @@ import shlex
 import subprocess
 import time
 
-COMMANDARGS = 'command',
-COMMANDKWARGS = {'help': 'command'}
-
-ARGUMENTARGS = 'argument',
-ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
-
 def _mkdo(cbk):
     def do(self, line):
         try:
@@ -97,8 +91,9 @@ class Cmdline(cmd.Cmd):
 
         # Set up base argument parsers
         self.editparser.description = "Edit command line."
-        self.editparser.add_argument(*COMMANDARGS, **COMMANDKWARGS)
-        self.editparser.add_argument(*ARGUMENTARGS, **ARGUMENTKWARGS)
+        self.editparser.add_argument('command', help='command')
+        self.editparser.add_argument('argument', help='arguments',
+                                     nargs=argparse.REMAINDER)
 
         self.pageparser.description = "Page output."
 
