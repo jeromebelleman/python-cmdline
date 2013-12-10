@@ -5,14 +5,13 @@ import argparse
 import tempfile
 import shlex
 import subprocess
+import time
 
 COMMANDARGS = 'command',
 COMMANDKWARGS = {'help': 'command'}
 
 ARGUMENTARGS = 'argument',
 ARGUMENTKWARGS = {'help': 'arguments', 'nargs': '*'}
-
-# TODO Timing
 
 def _mkdo(cbk):
     def do(self, line):
@@ -21,7 +20,19 @@ def _mkdo(cbk):
             args = getattr(Cmdline, cbk + 'parser').parse_args(split)
         except SystemExit:
             return
+
+        # Run command
+        self.t0 = time.time()
         getattr(self, 'run_' + cbk)(args)
+        if args.time:
+            print "%.1f seconds" % (time.time() - self.t0)
+
+        # Flush data to paging temporary file
+        self.temp.flush()
+
+        # Ring the bell
+        if self.bell:
+            print '\a\r',
 
     return do
 
@@ -47,15 +58,20 @@ def _filecomp(text, line, begidx):
             if e.startswith(os.path.basename(text))]
 
 class Cmdline(cmd.Cmd):
-    def __init__(self, history=False, bell=False):
+    def __init__(self, history=False, bell=False, timing=False):
         cmd.Cmd.__init__(self)
 
         self.bell = bell
+        self.timing = timing
 
         # Create argument parsers and callbacks
         for cbk in [cbk[4:] for cbk in dir(self) if cbk.startswith('run_')]:
             # Create argument parser
             setattr(Cmdline, cbk + 'parser', argparse.ArgumentParser(prog=cbk))
+            parser = getattr(Cmdline, cbk + 'parser')
+            if self.timing:
+                parser.add_argument('-t', '--time', action='store_true',
+                                    help="measure time spent in operations")
 
             # Create help function
             if 'help_' + cbk not in dir(self):
@@ -123,12 +139,6 @@ class Cmdline(cmd.Cmd):
             readline.write_history_file(self.directory + '/histfile')
 
         return line
-
-    def postcmd(self, stop, line):
-        if self.bell:
-            print '\a\r',
-
-        self.temp.flush()
 
     def loop(self):
         while True:
