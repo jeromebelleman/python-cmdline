@@ -190,6 +190,8 @@ class Cmdline(cmd.Cmd):
         Page output
         '''
 
-        subprocess.call(['vim', '-n', '+set nowrap titlestring=' + self.name,
-                         self.temp.name])
+        arguments = ['vim', '-n', '+set nowrap titlestring=' + self.name]
+        if os.path.exists(self.directory + '/page.vim'):
+            arguments.extend(['-S', self.directory + '/page.vim'])
+        subprocess.call(arguments + [self.temp.name])
         self.wintitle()
