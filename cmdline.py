@@ -52,7 +52,7 @@ def _filecomp(text, line, begidx):
             if e.startswith(os.path.basename(text))]
 
 class Cmdline(cmd.Cmd):
-    def __init__(self, history=False, bell=False, time=False):
+    def __init__(self, directory=None, history=False, bell=False, time=False):
         cmd.Cmd.__init__(self)
 
         self.bell = bell
@@ -85,7 +85,11 @@ class Cmdline(cmd.Cmd):
         self.wintitle()
 
         # Create directory
-        self.directory = os.path.expanduser('~/.%s' % self.name)
+        if directory:
+            self.directory = \
+                os.path.expanduser('%s/.%s' % (directory, self.name))
+        else:
+            self.directory = os.path.expanduser('~/.%s' % self.name)
         if not os.path.lexists(self.directory):
             os.mkdir(self.directory)
 
