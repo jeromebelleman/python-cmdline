@@ -116,6 +116,14 @@ class Cmdline(cmd.Cmd):
         # Setup completion
         readline.set_completer_delims(' \t\n')
 
+    def hook(self):
+        '''
+        Insert text in command line
+        '''
+
+        readline.insert_text(self.line)
+        readline.redisplay()
+
     def wintitle(self):
         print "\033]0;%s\007\r" % self.name,
 
@@ -148,7 +156,7 @@ class Cmdline(cmd.Cmd):
                 print
 
     def run_EOF(self, _):
-        # For some reason the tempfile isn't closed with the object is detroyed
+        # For some reason the tempfile isn't closed with the object is destroyed
         self.temp.close()
 
         print
@@ -169,17 +177,9 @@ class Cmdline(cmd.Cmd):
 
         # Read edited command line
         tmpr = open(tmpw.name)
-        line = tmpr.read().strip() # Can't cope with any trailing newline
+        self.line = tmpr.read().strip() # Can't cope with any trailing newline
 
-        def hook():
-            '''
-            Insert text in command line
-            '''
-
-            readline.insert_text(line)
-            readline.redisplay()
-
-        readline.set_pre_input_hook(hook)
+        readline.set_pre_input_hook(self.hook)
 
     def complete_edit(self, text, line, begidx, endidx):
         '''
@@ -194,8 +194,20 @@ class Cmdline(cmd.Cmd):
         Page output
         '''
 
+        # Take page modification time
+        mtime = os.stat(self.temp.name).st_mtime
+
+        # Run Vim
         arguments = ['vim', '-n', '+set nowrap titlestring=' + self.name]
         if os.path.exists(self.directory + '/page.vim'):
             arguments.extend(['-S', self.directory + '/page.vim'])
         subprocess.call(arguments + [self.temp.name])
         self.wintitle()
+
+        # Insert command line if needs be
+        if os.stat(self.temp.name).st_mtime != mtime:
+            tmpr = open(self.temp.name)
+            self.line = tmpr.next().strip()
+            tmpr.close()
+
+            readline.set_pre_input_hook(self.hook)
