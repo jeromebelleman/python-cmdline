@@ -21,9 +21,6 @@ def _mkdo(cbk):
         if self.time and args.time:
             print "%.1f seconds" % (time.time() - self.t0)
 
-        # Flush data to paging temporary file
-        self.temp.flush()
-
         # Ring the bell
         if self.bell:
             print '\a\r',
@@ -104,8 +101,7 @@ class Cmdline(cmd.Cmd):
         self.EOFparser.description = "Exit. You could also use Ctrl-D."
 
         # Set page file name
-        self.temp = tempfile.NamedTemporaryFile(prefix='page-',
-                                                dir=self.directory)
+        self.temp = self.directory + '/page'
 
         # History
         self.history = history
@@ -135,8 +131,7 @@ class Cmdline(cmd.Cmd):
         Reset page temporary file
         '''
 
-        self.temp.seek(0)
-        self.temp.truncate()
+        open(self.temp, 'w').close()
 
     def precmd(self, line):
 
@@ -156,9 +151,6 @@ class Cmdline(cmd.Cmd):
                 print
 
     def run_EOF(self, _):
-        # For some reason the tempfile isn't closed with the object is destroyed
-        self.temp.close()
-
         print
         sys.exit(0)
 
@@ -195,18 +187,18 @@ class Cmdline(cmd.Cmd):
         '''
 
         # Take page modification time
-        mtime = os.stat(self.temp.name).st_mtime
+        mtime = os.stat(self.temp).st_mtime
 
         # Run Vim
         arguments = ['vim', '-n', '+set nowrap titlestring=' + self.name]
         if os.path.exists(self.directory + '/page.vim'):
             arguments.extend(['-S', self.directory + '/page.vim'])
-        subprocess.call(arguments + [self.temp.name])
+        subprocess.call(arguments + [self.temp])
         self.wintitle()
 
         # Insert command line if needs be
-        if os.stat(self.temp.name).st_mtime != mtime:
-            tmpr = open(self.temp.name)
+        if os.stat(self.temp).st_mtime != mtime:
+            tmpr = open(self.temp)
             self.line = tmpr.next().strip()
             tmpr.close()
 
