@@ -101,7 +101,9 @@ class Cmdline(cmd.Cmd):
         self.EOFparser.description = "Exit. You could also use Ctrl-D."
 
         # Set page file name
-        self.temp = self.directory + '/page'
+        self._temp = tempfile.NamedTemporaryFile(dir=self.directory,
+                                                 prefix='page-')
+        self.temp = self._temp.name
 
         # History
         self.history = history
@@ -151,6 +153,9 @@ class Cmdline(cmd.Cmd):
                 print
 
     def run_EOF(self, _):
+        # For some reason the tempfile isn't closed with the object is destroyed
+        self._temp.close()
+
         print
         sys.exit(0)
 
