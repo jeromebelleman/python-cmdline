@@ -164,8 +164,17 @@ class Cmdline(cmd.Cmd):
         Edit command line
         '''
 
+        # Load online help if any
+        try:
+            fhl = open('%s/%s.help' % (self.directory, args.command))
+            helpmsg = fhl.read()
+            fhl.close()
+        except IOError:
+            helpmsg = ''
+
         # Open command line in editor
         tmpw = tempfile.NamedTemporaryFile(prefix='edit-', dir=self.directory)
+        print >> tmpw, helpmsg
         print >> tmpw, ' '.join([args.command] + args.argument)
         tmpw.flush()
         subprocess.call(['vim', '-n', '+set titlestring=' + self.name,
@@ -174,7 +183,12 @@ class Cmdline(cmd.Cmd):
 
         # Read edited command line
         tmpr = open(tmpw.name)
-        self.line = tmpr.read().strip() # Can't cope with any trailing newline
+        self.line = ''
+        for line in tmpr:
+            if line[0] not in ('#', '\n'):
+                self.line += line
+
+        self.line = self.line.strip() # Can't cope with any trailing newline
 
         readline.set_pre_input_hook(self.hook)
 
