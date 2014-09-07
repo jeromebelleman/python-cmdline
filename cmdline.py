@@ -148,7 +148,9 @@ class Cmdline(cmd.Cmd):
         while True:
             try:
                 self.cmdloop()
-            except KeyboardInterrupt:
+            except KeyboardInterrupt, exc:
+                if exc.message:
+                    break
                 readline.set_pre_input_hook()
                 print
 
@@ -157,7 +159,7 @@ class Cmdline(cmd.Cmd):
         self._temp.close()
 
         print
-        sys.exit(0)
+        raise KeyboardInterrupt(True)
 
     def run_edit(self, args):
         '''
