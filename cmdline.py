@@ -149,7 +149,7 @@ class Cmdline(cmd.Cmd):
             try:
                 self.cmdloop()
             except KeyboardInterrupt, exc:
-                if exc.message:
+                if exc.args:
                     break
                 readline.set_pre_input_hook()
                 print
