@@ -1,0 +1,126 @@
+.TH "PYTHON\-CMDLINE" "1" "March 2014" "" ""
+.hy
+.SH NAME
+.PP
+python\-cmdline \[en] Cmdline module
+.SH GETTING STARTED
+.PP
+Assuming you\[aq]re writing a tool called \f[B]foo\f[] after which
+you\[aq]ll name the Cmdline class:
+.IP
+.nf
+\f[C]
+#!\ /usr/bin/env\ python
+
+import\ sys
+import\ cmdline
+
+class\ Foo(cmdline.Cmdline):
+\ \ \ \ def\ __init__(self):
+\ \ \ \ \ \ \ \ cmdline.Cmdline.__init__(self)
+
+def\ main():
+\ \ \ \ Foo().loop()
+
+if\ __name__\ ==\ \[aq]__main__\[aq]:
+\ \ \ \ sys.exit(main())
+\f[]
+.fi
+.SH CLASS PARAMETERS
+.TP
+.B \f[B]directory\f[]
+Directory in which the program directory lives.
+Defaults to the home directory.
+.RS
+.RE
+.TP
+.B \f[B]history\f[]
+Possible values are \f[B]true\f[] and \f[B]false\f[], depending on
+whether you want to keep a command history or not.
+Default is \f[B]false\f[].
+.RS
+.RE
+.TP
+.B \f[B]bell\f[]
+Possible values are \f[B]true\f[] and \f[B]false\f[], depending on
+whether you want to ring a bell at the end of each command completion.
+Default is \f[B]false\f[].
+.RS
+.RE
+.TP
+.B \f[B]time\f[]
+Possible values are \f[B]true\f[] and \f[B]false\f[], depending on
+whether you want to add the \f[B]\-\-time\f[] option to each command to
+measure the time it takes to run it.
+Default is \f[B]false\f[].
+.RS
+.RE
+.SH DEFINING COMMANDS
+.PP
+Unlike \f[B]Cmd\f[], \f[B]Cmdline\f[] expects command definitions in
+\f[B]run_\f[] functions taking an \f[B]args\f[] namespace parameter:
+.IP
+.nf
+\f[C]
+def\ run_dothings(self,\ args):
+\ \ \ \ self.dothings(args.stuff)
+\f[]
+.fi
+.PP
+An argument parser \f[B]fooparser\f[] will be created for each command
+\f[B]foo\f[] that will be defined as such.
+.PP
+If you need to add an argument to the command, do so by calling the
+\f[B]foo.add_argument()\f[] function with the appropriate parameters.
+.PP
+Likewise, if you need to add a description to the command, do so by
+setting the \f[B]foo.description\f[] string.
+(Not sure to which point one is supposed to do so with \f[B]argparse\f[]
+but, but I haven\[aq]t found any better suggestion in the doc.)
+.SH COMMODITY COMMANDS
+.PP
+Some commodity functions are already defined:
+.TP
+.B \f[B]run_EOF()\f[]
+Close temporary files and exit.
+.RS
+.RE
+.TP
+.B \f[B]run_edit()\f[]
+Edit a command line.
+.RS
+.RE
+.TP
+.B \f[B]run_page()\f[]
+Page output.
+.RS
+.RE
+.PP
+Any of these can be overridden the usual way, should you need to add
+features.
+Example:
+.IP
+.nf
+\f[C]
+def\ run_EOF(self,\ _):
+\ \ \ \ clean_everything_up()
+
+\ \ \ \ cmdline.Cmdline.run_EOF(self,\ None)
+\f[]
+.fi
+.SH PAGING
+.PP
+The \f[B]page\f[] command is made available to you for free, but you
+still need to implement what has to be paged.
+This is done by writing data to a temporary file which will be loaded
+into Vim next time you run \f[B]page\f[].
+.PP
+As the temporary file is kept open at all times, you need to run
+\f[B]tempreset()\f[] to rewind and truncate it before writing anything
+to it.
+After this, it\[aq]s only a matter of writing to \f[B]self.temp\f[] as
+well as to \f[B]sys.stdout\f[].
+There is no need to \f[B]flush()\f[] because \f[B]Cmdline\f[] does that
+anyway after each command runs.
+.SH AUTHORS
+Jérôme Belleman.
