@@ -1,3 +1,8 @@
+A wrapper to Python's built-in `cmd` module, offering a number of shortcuts
+and features, such as automatic argument parsing with `argparse`, paging in
+Vim, command line editing from the previous page, command completion alerting,
+command timing.
+
 # NAME
 
 python-cmdline – Cmdline module
